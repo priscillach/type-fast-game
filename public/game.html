@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Type Faster</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+
+        #game-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        #game-rules, #game-area {
+            width: 80%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        #start-button, #restart-button {
+            font-size: 1.2em;
+            padding: 10px 20px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        #text-display {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            text-align: left;
+            white-space: pre-wrap;
+        }
+
+        #input-area {
+            width: 100%;
+            height: 100px;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        #stats {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .highlight {
+            background-color: yellow;
+        }
+
+        .error {
+            background-color: red;
+            text-decoration: line-through;
+        }
+
+        #celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 3em;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+<div id="game-container">
+    <h1>Type Faster</h1>
+    <div id="game-rules">
+        <h2>Game Rules</h2>
+        <p>1. The game has 10 levels. Each level presents a randomly generated text in your chosen language.</p>
+        <p>2. Difficulty increases with each level. The text becomes longer and more complex.</p>
+        <p>3. Your typing speed is displayed in real-time (WPM for alphabet-based languages, characters per minute for
+            others).</p>
+        <p>4. The game shows the level number, text to type, and an input box. Errors are highlighted in real-time.</p>
+        <p>5. Each level starts when you click "Start" and has a 30-second time limit.</p>
+        <p>6. Complete the text within 30 seconds to advance to the next level. Failure results in starting over from
+            level 1.</p>
+        <p>7. Successfully complete all 10 levels to win!</p>
+        <div>
+            <label for="language-select">Select Language:</label>
+            <select id="language-select">
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+            </select>
+        </div>
+        <button id="start-button">Start Game</button>
+    </div>
+    <div id="game-area" style="display: none;">
+        <div id="stats">
+            <div>Level: <span id="level">1</span>/10</div>
+            <div>Time: <span id="time">30</span>s</div>
+            <div>Speed: <span id="speed">0</span> <span id="speed-unit">WPM</span></div>
+        </div>
+        <div id="text-display"></div>
+        <textarea id="input-area" rows="4" cols="50"></textarea>
+        <button id="restart-button">Restart Game</button>
+    </div>
+</div>
+<div id="celebration">Congratulations! You've completed all levels!</div>
+
+<script>
+    const gameRules = document.getElementById('game-rules');
+    const gameArea = document.getElementById('game-area');
+    const startButton = document.getElementById('start-button');
+    const restartButton = document.getElementById('restart-button');
+    const textDisplay = document.getElementById('text-display');
+    const inputArea = document.getElementById('input-area');
+    const levelDisplay = document.getElementById('level');
+    const timeDisplay = document.getElementById('time');
+    const speedDisplay = document.getElementById('speed');
+    const speedUnit = document.getElementById('speed-unit');
+    const celebration = document.getElementById('celebration');
+
+    let currentLevel = 1;
+    let currentText = '';
+    let timer;
+    let startTime;
+    let language = 'en'; // Default language
+
+    const texts = {
+        en: [
+            "The quick brown fox jumps over the lazy dog.",
+            "To be or not to be, that is the question.",
+            "All that glitters is not gold.",
+            "A journey of a thousand miles begins with a single step.",
+            "Where there's a will, there's a way.",
+            "The early bird catches the worm, but the second mouse gets the cheese.",
+            "I have a dream that one day this nation will rise up and live out the true meaning of its creed.",
+            "Ask not what your country can do for you, ask what you can do for your country.",
+            "The only thing we have to fear is fear itself.",
+            "That's one small step for man, one giant leap for mankind."
+        ],
+        zh: [
+            "学而时习之，不亦说乎？",
+            "人生自古谁无死，留取丹心照汗青。",
+            "千里之行，始于足下。",
+            "不以物喜，不以己悲。",
+            "海内存知己，天涯若比邻。",
+            "人生得意须尽欢，莫使金樽空对月。",
+            "长风破浪会有时，直挂云帆济沧海。",
+            "欲穷千里目，更上一层楼。",
+            "会当凌绝顶，一览众山小。",
+            "人生如逆旅，我亦是行人。"
+        ],
+        // Add texts for other languages here
+    };
+
+    function startGame() {
+        console.log("Starting game...");
+        gameRules.style.display = 'none';
+        gameArea.style.display = 'block';
+        updateSpeedUnit();
+        startLevel();
+    }
+
+    function startLevel() {
+        console.log("Starting level " + currentLevel); // 添加调试信息
+        currentText = texts[language][currentLevel - 1];
+        textDisplay.innerHTML = currentText;
+        inputArea.value = '';
+        inputArea.focus();
+        levelDisplay.textContent = currentLevel;
+        startTimer();
+    }
+
+    function startTimer() {
+        let timeLeft = 30;
+        startTime = new Date();
+        timer = setInterval(() => {
+            timeLeft--;
+            timeDisplay.textContent = timeLeft;
+            updateSpeed();
+            if (timeLeft === 0) {
+                clearInterval(timer);
+                gameOver();
+            }
+        }, 1000);
+    }
+
+    function updateSpeed() {
+        const timeElapsed = (new Date() - startTime) / 1000 / 60; // in minutes
+        let speed;
+        if (language === 'zh') {
+            const charactersTyped = inputArea.value.length;
+            speed = Math.round(charactersTyped / timeElapsed);
+        } else {
+            const wordsTyped = inputArea.value.trim().split(/\s+/).length;
+            speed = Math.round(wordsTyped / timeElapsed);
+        }
+        speedDisplay.textContent = speed;
+    }
+
+    function checkInput() {
+        const userInput = inputArea.value;
+        let html = '';
+        for (let i = 0; i < currentText.length; i++) {
+            if (i < userInput.length) {
+                if (userInput[i] === currentText[i]) {
+                    html += `<span class="highlight">${currentText[i]}</span>`;
+                } else {
+                    html += `<span class="error">${currentText[i]}</span>`;
+                }
+            } else {
+                html += currentText[i];
+            }
+        }
+        textDisplay.innerHTML = html;
+
+        if (userInput === currentText) {
+            clearInterval(timer);
+            if (currentLevel === 10) {
+                celebration.style.display = 'flex';
+            } else {
+                currentLevel++;
+                startLevel();
+            }
+        }
+    }
+
+    function gameOver() {
+        alert('Time\'s up! Game over.');
+        restartGame();
+    }
+
+    function restartGame() {
+        currentLevel = 1;
+        startLevel();
+    }
+
+    // 修改事件监听器
+    startButton.addEventListener('click', function () {
+        console.log("Start button clicked"); // 添加调试信息
+        startGame();
+    });
+    restartButton.addEventListener('click', restartGame);
+    inputArea.addEventListener('input', checkInput);
+
+    const languageSelect = document.getElementById('language-select');
+
+    function changeLanguage() {
+        language = languageSelect.value;
+        if (currentLevel > 1) {
+            if (confirm("Changing language will restart the game. Are you sure?")) {
+                restartGame();
+            } else {
+                languageSelect.value = language;
+            }
+        }
+        updateSpeedUnit();
+    }
+
+    function updateSpeedUnit() {
+        speedUnit.textContent = language === 'zh' ? 'CPM' : 'WPM';
+    }
+
+    languageSelect.addEventListener('change', changeLanguage);
+    // 初始化游戏
+    console.log("Game initialized"); // 添加调试信息
+</script>
+</body>
+</html>
