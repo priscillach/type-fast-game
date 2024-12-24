@@ -1,41 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { LANGUAGES, calculateSpeed, getDifficultyFactor } from '../config/languages';
 
-const texts = {
-  en: [
-    "The quick brown fox jumps over the lazy dog.",
-    "To be or not to be, that is the question.",
-    "All that glitters is not gold.",
-    "A journey of a thousand miles begins with a single step.",
-    "Where there's a will, there's a way.",
-    "The early bird catches the worm, but the second mouse gets the cheese.",
-    "I have a dream that one day this nation will rise up and live out the true meaning of its creed.",
-    "Ask not what your country can do for you, ask what you can do for your country.",
-    "The only thing we have to fear is fear itself.",
-    "That's one small step for man, one giant leap for mankind."
-  ],
-  zh: [
-    "学而时习之，不亦说乎？",
-    "人生自古谁无死，留取丹心照汗青。",
-    "千里之行，始于足下。",
-    "不以物喜，不以己悲。",
-    "海内存知己，天涯若比邻。",
-    "人生得意须尽欢，莫使金樽空对月。",
-    "长风破浪会有时，直挂云帆济沧海。",
-    "欲穷千里目，更上一层楼。",
-    "会当凌绝顶，一览众山小。",
-    "人生如逆旅，我亦是行人。"
-  ],
-};
-
-function TypeFastGame() {
+function TypeFastGame({ currentLanguage }) {
   const [gameStarted, setGameStarted] = useState(false);
   const [currentLevel, setCurrentLevel] = useState(1);
   const [currentText, setCurrentText] = useState('');
   const [inputText, setInputText] = useState('');
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(10);
   const [speed, setSpeed] = useState(0);
-  const [language, setLanguage] = useState('en');
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showGameOver, setShowGameOver] = useState(false);
 
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -45,7 +19,7 @@ function TypeFastGame() {
       startLevel();
     }
     return () => clearInterval(timerRef.current);
-  }, [gameStarted, currentLevel, language]);
+  }, [gameStarted, currentLevel, currentLanguage]);
 
   const startGame = () => {
     setGameStarted(true);
@@ -53,9 +27,10 @@ function TypeFastGame() {
   };
 
   const startLevel = () => {
-    setCurrentText(texts[language][currentLevel - 1]);
+    const currentTexts = LANGUAGES[currentLanguage].texts;
+    setCurrentText(currentTexts[currentLevel - 1][0]);
     setInputText('');
-    setTimeLeft(30);
+    setTimeLeft(10);
     startTimeRef.current = new Date();
     timerRef.current = setInterval(() => {
       setTimeLeft((prevTime) => {
@@ -72,49 +47,53 @@ function TypeFastGame() {
 
   const updateSpeed = () => {
     const timeElapsed = (new Date() - startTimeRef.current) / 1000 / 60; // in minutes
-    let newSpeed;
-    if (language === 'zh') {
-      const charactersTyped = inputText.length;
-      newSpeed = Math.round(charactersTyped / timeElapsed);
-    } else {
-      const wordsTyped = inputText.trim().split(/\s+/).length;
-      newSpeed = Math.round(wordsTyped / timeElapsed);
-    }
+    const newSpeed = calculateSpeed(inputText, timeElapsed, currentLanguage);
     setSpeed(newSpeed);
+  };
+
+  const handleLevelComplete = () => {
+    clearInterval(timerRef.current);
+    if (currentLevel === 10) {
+      setShowCelebration(true);
+      setTimeout(() => {
+        setShowCelebration(false);
+        backToHome();
+      }, 3000);
+    } else {
+      setCurrentLevel((prevLevel) => prevLevel + 1);
+    }
   };
 
   const handleInputChange = (e) => {
     setInputText(e.target.value);
     if (e.target.value === currentText) {
-      clearInterval(timerRef.current);
-      if (currentLevel === 10) {
-        setShowCelebration(true);
-      } else {
-        setCurrentLevel((prevLevel) => prevLevel + 1);
-      }
+      handleLevelComplete();
     }
   };
 
-  const gameOver = () => {
-    alert('Time\'s up! Game over.');
-    restartGame();
+  const backToHome = () => {
+    setGameStarted(false);
+    setCurrentLevel(1);
+    setShowCelebration(false);
+    setInputText('');
+    clearInterval(timerRef.current);
   };
 
   const restartGame = () => {
     setCurrentLevel(1);
-    setGameStarted(true);
+    setShowCelebration(false);
+    setInputText('');
+    clearInterval(timerRef.current);
+    startLevel();
   };
 
-  const changeLanguage = (e) => {
-    const newLanguage = e.target.value;
-    if (currentLevel > 1) {
-      if (window.confirm("Changing language will restart the game. Are you sure?")) {
-        setLanguage(newLanguage);
-        restartGame();
+  const gameOver = () => {
+    setShowGameOver(true);
+    setTimeout(() => {
+      if (showGameOver) {
+        backToHome();
       }
-    } else {
-      setLanguage(newLanguage);
-    }
+    }, 3000);
   };
 
   const renderText = () => {
@@ -128,39 +107,59 @@ function TypeFastGame() {
   };
 
   return (
-    <div id="game-container">
-      <h1>Type Faster</h1>
+    <div id="game-container" className="fade-in">
       {!gameStarted ? (
-        <div id="game-rules">
-          <div>
-            <label htmlFor="language-select">Select Language:</label>
-            <select id="language-select" value={language} onChange={changeLanguage}>
-              <option value="en">English</option>
-              <option value="zh">中文</option>
-            </select>
-          </div>
-          <button id="start-button" onClick={startGame}>Start Game</button>
+        <div id="home-screen">
+          <h1 className="main-title">{LANGUAGES[currentLanguage].mainTitle}</h1>
+          <button
+            className="button primary hover-scale start-button"
+            onClick={startGame}
+          >
+            {LANGUAGES[currentLanguage].startGame}
+          </button>
         </div>
       ) : (
         <div id="game-area">
           <div id="stats">
             <div>Level: <span id="level">{currentLevel}</span>/10</div>
             <div>Time: <span id="time">{timeLeft}</span>s</div>
-            <div>Speed: <span id="speed">{speed}</span> <span id="speed-unit">{language === 'zh' ? 'CPM' : 'WPM'}</span></div>
+            <div>Speed: <span id="speed">{speed}</span> {LANGUAGES[currentLanguage].speedUnit}</div>
           </div>
           <div id="text-display">{renderText()}</div>
           <textarea
             id="input-area"
-            rows="4"
-            cols="50"
             value={inputText}
             onChange={handleInputChange}
+            placeholder={LANGUAGES[currentLanguage].texts[currentLevel - 1][1]}
           />
-          <button id="restart-button" onClick={restartGame}>Restart Game</button>
+          <div className="button-group">
+            <button className="button secondary hover-scale" onClick={restartGame}>
+              {LANGUAGES[currentLanguage].restartGame}
+            </button>
+            <button className="button secondary hover-scale" onClick={backToHome}>
+              {LANGUAGES[currentLanguage].backToHome}
+            </button>
+          </div>
         </div>
       )}
       {showCelebration && (
-        <div id="celebration">Congratulations! You've completed all levels!</div>
+        <div id="celebration" className="celebration-animation">
+          {LANGUAGES[currentLanguage].congratulations}
+        </div>
+      )}
+      {showGameOver && (
+        <div className="game-over-modal">
+          <h2>{LANGUAGES[currentLanguage].gameOver}</h2>
+          <button 
+            className="button primary hover-scale"
+            onClick={() => {
+              setShowGameOver(false);
+              restartGame();
+            }}
+          >
+            {LANGUAGES[currentLanguage].restartGame}
+          </button>
+        </div>
       )}
     </div>
   );
