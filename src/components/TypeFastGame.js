@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LANGUAGES, calculateSpeed, getDifficultyFactor } from '../config/languages';
+import { LANGUAGES, DIFFICULTY_LEVELS } from '../config/languages';
 
 function TypeFastGame({ currentLanguage }) {
   const [gameStarted, setGameStarted] = useState(false);
@@ -11,6 +11,7 @@ function TypeFastGame({ currentLanguage }) {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
   const [isGameActive, setIsGameActive] = useState(true);
+  const [difficulty, setDifficulty] = useState('easy');
 
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -31,7 +32,7 @@ function TypeFastGame({ currentLanguage }) {
     const currentTexts = LANGUAGES[currentLanguage].texts;
     setCurrentText(currentTexts[currentLevel - 1][0]);
     setInputText('');
-    setTimeLeft(10);
+    setTimeLeft(DIFFICULTY_LEVELS[difficulty].time);
     setSpeed(0);
     setIsGameActive(true);
     startTimeRef.current = new Date();
@@ -164,6 +165,22 @@ function TypeFastGame({ currentLanguage }) {
       {!gameStarted ? (
         <div id="home-screen">
           <h1 className="main-title">{LANGUAGES[currentLanguage].mainTitle}</h1>
+          <div className="difficulty-selector">
+            <h3>{LANGUAGES[currentLanguage].difficulty.title}</h3>
+            <div className="difficulty-buttons">
+              {Object.entries(DIFFICULTY_LEVELS).map(([level, config]) => (
+                <button
+                  key={level}
+                  className={`button difficulty-button ${
+                    difficulty === level ? 'active' : ''
+                  }`}
+                  onClick={() => setDifficulty(level)}
+                >
+                  {LANGUAGES[currentLanguage].difficulty[config.label]}
+                </button>
+              ))}
+            </div>
+          </div>
           <button
             className="button primary hover-scale start-button"
             onClick={startGame}

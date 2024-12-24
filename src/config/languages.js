@@ -30,12 +30,18 @@ export const LANGUAGES = {
       'Select your preferred language',
       'Complete 10 levels of increasing difficulty',
       'Type the text exactly as shown',
-      'Complete each level within 10 seconds',
+      'Complete each level within 10/20/30 seconds',
       'Track your typing speed in words per minute'
     ],
     siteTitle: 'Typing Speed Master',
     siteDescription: 'Improve your typing speed and accuracy with our multilingual typing game. Choose your preferred language and challenge yourself through increasingly difficult levels.',
-    rulesTitle: 'Game Rules'
+    rulesTitle: 'Game Rules',
+    difficulty: {
+      title: 'Select Difficulty',
+      easy: 'Easy (10s)',
+      medium: 'Medium (20s)',
+      hard: 'Hard (30s)'
+    }
   },
   es: {
     name: 'Español',
@@ -68,12 +74,18 @@ export const LANGUAGES = {
       'Selecciona tu idioma preferido',
       'Completa 10 niveles de dificultad creciente',
       'Escribe el texto exactamente como se muestra',
-      'Completa cada nivel en 10 segundos',
+      'Completa cada nivel en 10/20/30 segundos',
       'Mide tu velocidad de escritura en palabras por minuto'
     ],
     siteTitle: 'Maestro de Mecanografía',
     siteDescription: 'Mejora tu velocidad y precisión de escritura con nuestro juego de mecanografía multilingüe. Elige tu idioma preferido y desafíate a través de niveles cada vez más difíciles.',
-    rulesTitle: 'Reglas del Juego'
+    rulesTitle: 'Reglas del Juego',
+    difficulty: {
+      title: 'Seleccionar Dificultad',
+      easy: 'Fácil (10s)',
+      medium: 'Medio (20s)',
+      hard: 'Difícil (30s)'
+    }
   },
   zh: {
     name: '中文',
@@ -106,12 +118,18 @@ export const LANGUAGES = {
       '选择您喜欢的语言',
       '完成10个难度递增的关卡',
       '准确输入显示的文本',
-      '在10秒内完成每个关卡',
+      '在10/20/30秒内完成每个关卡',
       '实时跟踪您的打字速度'
     ],
     siteTitle: '打字速度大师',
     siteDescription: '通过我们的多语言打字游戏提高您的打字速度和准确性。选择您喜欢的语言，挑战自我，通过逐渐增加难度的关卡。',
-    rulesTitle: '游戏规则'
+    rulesTitle: '游戏规则',
+    difficulty: {
+      title: '选择难度',
+      easy: '简单 (10秒)',
+      medium: '中等 (20秒)',
+      hard: '困难 (30秒)'
+    }
   }
 };
 
@@ -137,4 +155,10 @@ export const getDifficultyFactor = (language, level) => {
     default:
       return baseDifficulty;
   }
+};
+
+export const DIFFICULTY_LEVELS = {
+  easy: { time: 10, label: 'easy' },
+  medium: { time: 20, label: 'medium' },
+  hard: { time: 30, label: 'hard' }
 }; 
