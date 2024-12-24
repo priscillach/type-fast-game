@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { LANGUAGES, DIFFICULTY_LEVELS } from '../config/languages';
+import { getRandomText } from '../config/texts';
 
-function TypeFastGame({ currentLanguage }) {
+function TypeFastGame({ currentLanguage, setIsGameInProgress }) {
   const [gameStarted, setGameStarted] = useState(false);
   const [currentLevel, setCurrentLevel] = useState(1);
   const [currentText, setCurrentText] = useState('');
@@ -15,86 +16,120 @@ function TypeFastGame({ currentLanguage }) {
 
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
+  const speedUpdateRef = useRef(null);
+  const keystrokesRef = useRef(0);
+  const isMounted = useRef(true);
+  const inputRef = useRef(null);
+
+  const updateSpeed = useCallback(() => {
+    if (!startTimeRef.current || !isGameActive) return;
+
+    const timeElapsed = (new Date() - startTimeRef.current) / 1000 / 60;
+    if (timeElapsed <= 0) return;
+
+    const averageKpm = Math.round((keystrokesRef.current / timeElapsed) * 10) / 10;
+    if (isMounted.current) {
+      setSpeed(averageKpm);
+    }
+  }, [isGameActive]);
+
+  const backToHome = useCallback(() => {
+    clearInterval(timerRef.current);
+    clearInterval(speedUpdateRef.current);
+    setGameStarted(false);
+    setCurrentLevel(1);
+    setShowCelebration(false);
+    setShowGameOver(false);
+    setInputText('');
+    setSpeed(0);
+    keystrokesRef.current = 0;
+    setIsGameActive(true);
+    setTimeout(() => {
+      setIsGameInProgress(false);
+    }, 0);
+  }, [setIsGameInProgress]);
+
+  const gameOver = useCallback(() => {
+    clearInterval(speedUpdateRef.current);
+    clearInterval(timerRef.current);
+    setIsGameActive(false);
+    setShowGameOver(true);
+    setTimeout(() => {
+      setShowGameOver(false);
+      backToHome();
+    }, 3000);
+  }, [backToHome]);
+
+  const startLevel = useCallback(() => {
+    try {
+      const randomText = getRandomText(currentLevel, currentLanguage);
+      if (!randomText) {
+        console.error(`No text found for level ${currentLevel} and language ${currentLanguage}`);
+        backToHome();
+        return;
+      }
+      setCurrentText(randomText);
+      setInputText('');
+      setTimeLeft(DIFFICULTY_LEVELS[difficulty].time);
+      setSpeed(0);
+      keystrokesRef.current = 0;
+      setIsGameActive(true);
+      startTimeRef.current = new Date();
+
+      // 清除现有的计时器
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (speedUpdateRef.current) clearInterval(speedUpdateRef.current);
+
+      // 设置新的计时器
+      timerRef.current = setInterval(() => {
+        if (!isMounted.current) return;
+        setTimeLeft((prevTime) => {
+          if (prevTime <= 1) {
+            clearInterval(timerRef.current);
+            gameOver();
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+
+      speedUpdateRef.current = setInterval(() => {
+        if (!isMounted.current) return;
+        updateSpeed();
+      }, 500);
+
+      // 自动聚焦输入框
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    } catch (error) {
+      console.error('Error starting level:', error);
+      backToHome();
+    }
+  }, [currentLevel, currentLanguage, difficulty, gameOver, updateSpeed, backToHome]);
 
   useEffect(() => {
-    if (gameStarted) {
+    if (gameStarted && isMounted.current) {
       startLevel();
     }
-    return () => clearInterval(timerRef.current);
-  }, [gameStarted, currentLevel, currentLanguage]);
+    return () => {
+      clearInterval(timerRef.current);
+      clearInterval(speedUpdateRef.current);
+    };
+  }, [gameStarted, startLevel]);
 
   const startGame = () => {
+    handleHomeScreenAction();
     setGameStarted(true);
     setCurrentLevel(1);
-  };
-
-  const startLevel = () => {
-    const currentTexts = LANGUAGES[currentLanguage].texts;
-    setCurrentText(currentTexts[currentLevel - 1][0]);
-    setInputText('');
-    setTimeLeft(DIFFICULTY_LEVELS[difficulty].time);
-    setSpeed(0);
-    setIsGameActive(true);
-    startTimeRef.current = new Date();
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prevTime) => {
-        if (prevTime <= 1) {
-          clearInterval(timerRef.current);
-          gameOver();
-          return 0;
-        }
-        return prevTime - 1;
-      });
-    }, 1000);
-  };
-
-  const updateSpeed = () => {
-    const timeElapsed = (new Date() - startTimeRef.current) / 1000 / 60; // in minutes
-    let speed;
-    
-    // 如果没有输入任何内容，速度应该为0
-    if (!inputText.trim()) {
-      speed = 0;
-    } else {
-      if (currentLanguage === 'zh') {
-        // 对于中文，只计算正确输入的字符
-        let correctCharCount = 0;
-        const inputChars = inputText.split('');
-        const targetChars = currentText.split('');
-        
-        // 只计算已经正确输入的字符
-        for (let i = 0; i < inputChars.length && i < targetChars.length; i++) {
-          if (inputChars[i] === targetChars[i]) {
-            // 检查是否是中文字符或标点
-            if (/[\u4e00-\u9fa5]/.test(inputChars[i]) || 
-                /[\u3002\uff1f\uff01\uff0c\u3001\uff1b\uff1a\u201c\u201d\u2018\u2019\uff08\uff09\u300a\u300b\u3008\u3009\u3010\u3011\u300e\u300f\u300c\u300d\ufe43\ufe44\u3014\u3015\u2026\u2014\uff5e\ufe4f\uffe5]/.test(inputChars[i])) {
-              correctCharCount++;
-            }
-          }
-        }
-        speed = Math.round(correctCharCount / timeElapsed);
-      } else {
-        // 对于英文和西语，只计算正确输入的单词
-        const inputWords = inputText.trim().split(/\s+/);
-        const targetWords = currentText.trim().split(/\s+/);
-        let correctWordCount = 0;
-        
-        // 只计算完整且正确的单词
-        for (let i = 0; i < inputWords.length && i < targetWords.length; i++) {
-          if (inputWords[i] === targetWords[i]) {
-            correctWordCount++;
-          }
-        }
-        speed = Math.round(correctWordCount / timeElapsed);
-      }
-    }
-    
-    setSpeed(speed);
+    setIsGameInProgress(true);
   };
 
   const handleLevelComplete = () => {
     clearInterval(timerRef.current);
+    clearInterval(speedUpdateRef.current);
     setIsGameActive(false);
+    
     if (currentLevel === 10) {
       setShowCelebration(true);
       setTimeout(() => {
@@ -109,48 +144,36 @@ function TypeFastGame({ currentLanguage }) {
   const handleInputChange = (e) => {
     if (!isGameActive) return;
     
-    setInputText(e.target.value);
-    if (startTimeRef.current) {
-      updateSpeed();
+    const newInput = e.target.value;
+    const oldInput = inputText;
+    setInputText(newInput);
+
+    // 如果输入了新字符，增加按键计数
+    if (newInput.length > oldInput.length) {
+      keystrokesRef.current += 1;
     }
-    if (e.target.value === currentText) {
+
+    if (newInput === currentText) {
       handleLevelComplete();
     }
   };
 
-  const backToHome = () => {
-    setGameStarted(false);
-    setCurrentLevel(1);
-    setShowCelebration(false);
-    setShowGameOver(false);
-    setInputText('');
-    setSpeed(0);
-    setIsGameActive(true);
-    clearInterval(timerRef.current);
-  };
-
   const restartGame = () => {
+    clearInterval(timerRef.current);
+    clearInterval(speedUpdateRef.current);
     setCurrentLevel(1);
     setShowCelebration(false);
     setShowGameOver(false);
     setInputText('');
     setSpeed(0);
+    keystrokesRef.current = 0;
     setIsGameActive(true);
-    clearInterval(timerRef.current);
     startLevel();
   };
 
-  const gameOver = () => {
-    setIsGameActive(false);
-    setShowGameOver(true);
-    setTimeout(() => {
-      if (showGameOver) {
-        backToHome();
-      }
-    }, 3000);
-  };
-
   const renderText = () => {
+    if (!currentText) return null;
+    
     return currentText.split('').map((char, index) => {
       let className = '';
       if (index < inputText.length) {
@@ -158,6 +181,11 @@ function TypeFastGame({ currentLanguage }) {
       }
       return <span key={index} className={className}>{char}</span>;
     });
+  };
+
+  const handleHomeScreenAction = () => {
+    setShowGameOver(false);
+    setShowCelebration(false);
   };
 
   return (
@@ -174,7 +202,10 @@ function TypeFastGame({ currentLanguage }) {
                   className={`button difficulty-button ${
                     difficulty === level ? 'active' : ''
                   }`}
-                  onClick={() => setDifficulty(level)}
+                  onClick={() => {
+                    handleHomeScreenAction();
+                    setDifficulty(level);
+                  }}
                 >
                   {LANGUAGES[currentLanguage].difficulty[config.label]}
                 </button>
@@ -196,13 +227,19 @@ function TypeFastGame({ currentLanguage }) {
             <div>Speed: <span id="speed">{speed}</span> {LANGUAGES[currentLanguage].speedUnit}</div>
           </div>
           <div id="text-display">{renderText()}</div>
-          <textarea
-            id="input-area"
-            value={inputText}
-            onChange={handleInputChange}
-            disabled={!isGameActive}
-            placeholder={LANGUAGES[currentLanguage].texts[currentLevel - 1][1]}
-          />
+          <div className={`input-container ${inputText ? 'has-content' : ''}`}>
+            <div className="placeholder-text">
+              {currentText}
+            </div>
+            <textarea
+              ref={inputRef}
+              id="input-area"
+              value={inputText}
+              onChange={handleInputChange}
+              disabled={!isGameActive}
+              spellCheck="false"
+            />
+          </div>
           <div className="button-group">
             <button 
               className="button secondary hover-scale" 
@@ -225,15 +262,6 @@ function TypeFastGame({ currentLanguage }) {
       {showGameOver && (
         <div className="game-over-modal">
           <h2>{LANGUAGES[currentLanguage].gameOver}</h2>
-          <button 
-            className="button primary hover-scale"
-            onClick={() => {
-              setShowGameOver(false);
-              restartGame();
-            }}
-          >
-            {LANGUAGES[currentLanguage].restartGame}
-          </button>
         </div>
       )}
     </div>

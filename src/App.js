@@ -5,14 +5,23 @@ import './styles/App.css';
 
 function App() {
   const [currentLanguage, setCurrentLanguage] = useState('en');
+  const [isGameInProgress, setIsGameInProgress] = useState(false);
+
+  const handleLanguageChange = (e) => {
+    if (isGameInProgress) {
+      return;
+    }
+    setCurrentLanguage(e.target.value);
+  };
 
   return (
     <div className="app-container">
       <div className="top-language-selector">
         <select
           value={currentLanguage}
-          onChange={(e) => setCurrentLanguage(e.target.value)}
+          onChange={handleLanguageChange}
           className="language-dropdown"
+          disabled={isGameInProgress}
         >
           {Object.entries(LANGUAGES).map(([code, lang]) => (
             <option key={code} value={code}>
@@ -33,7 +42,10 @@ function App() {
         </ul>
       </div>
 
-      <TypeFastGame currentLanguage={currentLanguage} />
+      <TypeFastGame 
+        currentLanguage={currentLanguage} 
+        setIsGameInProgress={setIsGameInProgress} 
+      />
     </div>
   );
 }

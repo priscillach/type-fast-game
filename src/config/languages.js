@@ -1,7 +1,7 @@
 export const LANGUAGES = {
   en: {
     name: 'English',
-    speedUnit: 'WPM',
+    speedUnit: 'KPM',
     gameTitle: 'Type Faster',
     selectLanguage: 'Select Language',
     startGame: 'Start Game',
@@ -45,7 +45,7 @@ export const LANGUAGES = {
   },
   es: {
     name: 'Español',
-    speedUnit: 'PPM',
+    speedUnit: 'KPM',
     gameTitle: 'Escribe Más Rápido',
     selectLanguage: 'Seleccionar Idioma',
     startGame: 'Comenzar Juego',
@@ -89,7 +89,7 @@ export const LANGUAGES = {
   },
   zh: {
     name: '中文',
-    speedUnit: 'CPM',
+    speedUnit: 'KPM',
     gameTitle: '打字速度测试',
     selectLanguage: '选择语言',
     startGame: '开始游戏',
