@@ -1,0 +1,81 @@
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  position: relative;
+}
+
+.top-language-selector {
+  position: absolute;
+  top: 1rem;
+  right: 2rem;
+}
+
+.app-title {
+  text-align: center;
+  color: #2c3e50;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.app-description {
+  text-align: center;
+  color: #666;
+  font-size: 1.2rem;
+  max-width: 800px;
+  margin: 0 auto 3rem;
+  line-height: 1.6;
+}
+
+.language-dropdown {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #4CAF50;
+  border-radius: 0.5rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.language-dropdown:hover {
+  border-color: #45a049;
+  background: #f8f8f8;
+}
+
+.rules-section {
+  max-width: 800px;
+  margin: 0 auto 3rem;
+  padding: 2rem;
+  background: #f8f8f8;
+  border-radius: 1rem;
+  border-left: 4px solid #4CAF50;
+}
+
+.rules-title {
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.rules-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rules-list li {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  line-height: 1.6;
+  color: #444;
+}
+
+.rules-list li::before {
+  content: "•";
+  color: #4CAF50;
+  font-size: 1.5rem;
+  position: absolute;
+  left: 0;
+  top: -0.2rem;
+} 
