@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://type-fast.online/sitemap.xml 
